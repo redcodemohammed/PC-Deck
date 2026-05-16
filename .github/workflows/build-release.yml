@@ -1,0 +1,76 @@
+name: Build PC Deck Artifacts
+
+on:
+  push:
+    branches: ["master", "main"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  android-apk:
+    name: Build Android APK (Expo)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile-app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile-app/package.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Expo CLI
+        run: npm install -g expo
+
+      - name: Generate native Android project
+        run: npx expo prebuild --platform android --non-interactive
+
+      - name: Build release APK
+        run: |
+          cd android
+          chmod +x ./gradlew
+          ./gradlew assembleRelease -Pandroid.kotlinVersion=2.0.21
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-app-release-apk
+          path: mobile-app/android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+  windows-daemon:
+    name: Build Windows EXE (Rust daemon)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: pc-deck-daemon
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pc-deck-daemon-windows-exe
+          path: pc-deck-daemon/target/release/pc-deck-daemon.exe
+          if-no-files-found: error
