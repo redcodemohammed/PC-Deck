@@ -1,0 +1,5 @@
+use axum::{extract::{Path, State}, http::HeaderMap, Json};use crate::{auth::require_auth, error::AppError, models::Deck, AppState};
+pub async fn get_decks(State(state):State<AppState>, headers:HeaderMap)->Result<Json<Vec<Deck>>,AppError>{require_auth(&headers,&state).await?; Ok(Json(state.store.list_decks()?))}
+pub async fn create_deck(State(state):State<AppState>, headers:HeaderMap, Json(deck):Json<Deck>)->Result<Json<Deck>,AppError>{require_auth(&headers,&state).await?; Ok(Json(state.store.upsert_deck(deck)?))}
+pub async fn update_deck(Path(deck_id):Path<String>, State(state):State<AppState>, headers:HeaderMap, Json(mut deck):Json<Deck>)->Result<Json<Deck>,AppError>{require_auth(&headers,&state).await?; deck.id=deck_id; let d=state.store.upsert_deck(deck)?; let _=state.ws_tx.send(crate::models::WsEvent{event_type:"deck_updated".into(),payload:serde_json::json!({"deckId":d.id})}); Ok(Json(d))}
+pub async fn delete_deck(Path(deck_id):Path<String>, State(state):State<AppState>, headers:HeaderMap)->Result<Json<serde_json::Value>,AppError>{require_auth(&headers,&state).await?; state.store.delete_deck(&deck_id)?; Ok(Json(serde_json::json!({"ok":true}))) }

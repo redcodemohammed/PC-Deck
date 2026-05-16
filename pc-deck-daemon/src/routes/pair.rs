@@ -1,0 +1,2 @@
+use axum::{extract::State, Json};use uuid::Uuid;use crate::{error::AppError, models::{PairRequest, PairResponse}, AppState};
+pub async fn pair(State(state):State<AppState>, Json(req):Json<PairRequest>)->Result<Json<PairResponse>,AppError>{ let cfg=state.config.read().await; if req.pairing_code!=cfg.pairing_code { return Err(AppError::Unauthorized);} let token=Uuid::new_v4().to_string(); state.store.add_device(req.device_name, token.clone())?; Ok(Json(PairResponse{token,desktop_name:cfg.desktop_name.clone()})) }

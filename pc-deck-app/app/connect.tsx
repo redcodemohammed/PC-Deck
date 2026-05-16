@@ -1,0 +1,2 @@
+import { View, Text, TextInput, Button } from 'react-native'; import { useState } from 'react'; import { useConnectionStore } from '../src/store/connectionStore';
+export default function Connect(){const [ip,setIp]=useState('');const [code,setCode]=useState('');const pair=useConnectionStore(s=>s.pair);return <View><Text>Connect</Text><TextInput value={ip} onChangeText={setIp} placeholder='Desktop IP'/><TextInput value={code} onChangeText={setCode} placeholder='Pairing code'/><Button title='Connect' onPress={()=>pair(ip,code)}/></View>}
