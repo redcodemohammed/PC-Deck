@@ -2,7 +2,7 @@ name: Build PC Deck Artifacts
 
 on:
   push:
-    branches: ["master"]
+    branches: ["master", "main"]
   pull_request:
   workflow_dispatch:
 
