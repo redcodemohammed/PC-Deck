@@ -1,0 +1,3 @@
+use axum::{extract::{ws::{Message, WebSocket, WebSocketUpgrade}, State}, response::Response};use futures_util::StreamExt;use crate::AppState;
+pub async fn ws_handler(ws:WebSocketUpgrade, State(state):State<AppState>)->Response{ws.on_upgrade(move|sock|handle_socket(sock,state))}
+async fn handle_socket(mut socket:WebSocket, state:AppState){let mut rx=state.ws_tx.subscribe(); let _=socket.send(Message::Text(serde_json::json!({"type":"connection_status","payload":{"connected":true}}).to_string())).await; while let Ok(event)=rx.recv().await { if socket.send(Message::Text(serde_json::to_string(&event).unwrap())).await.is_err(){break;} if socket.next().await.is_none(){break;} }}
