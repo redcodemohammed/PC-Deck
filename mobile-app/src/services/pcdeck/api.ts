@@ -117,6 +117,18 @@ export class PcDeckApi {
     return res.data!
   }
 
+  async controlNowPlaying(
+    action: "playpause" | "play" | "pause" | "next" | "prev" | "stop",
+    player?: string,
+  ) {
+    const res = await this.client.post<{ ok: boolean }>("/widgets/now_playing/control", {
+      action,
+      player,
+    })
+    if (!res.ok) throw new Error(res.problem ?? "now_playing control failed")
+    return res.data!
+  }
+
   async listApps(): Promise<InstalledApp[]> {
     const res = await this.client.get<AppsResponse | InstalledApp[]>("/apps")
     if (!res.ok) throw new Error(res.problem ?? "app list failed")

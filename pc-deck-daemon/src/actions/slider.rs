@@ -47,10 +47,47 @@ fn set_volume(value: f64) -> Result<(), AppError> {
 #[cfg(target_os = "windows")]
 fn set_volume(value: f64) -> Result<(), AppError> {
     let pct = clamp_percent(value);
-    // nircmd is a common helper but not bundled; fall back to a PowerShell call
-    // that nudges volume via SendKeys is unreliable, so we just no-op with a log.
-    info!("slider/volume: target {}% — Windows volume requires nircmd or similar", pct);
-    Ok(())
+    // Uses Add-Type to call the Windows IAudioEndpointVolume COM API. Works on
+    // any stock Windows install — no nircmd / AudioDeviceCmdlets needed.
+    let level = pct as f32 / 100.0;
+    let script = format!(
+        r#"
+$ErrorActionPreference = 'Stop'
+Add-Type -Language CSharp -TypeDefinition @"
+using System.Runtime.InteropServices;
+[Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+public interface IAudioEndpointVolume {{
+    int _a(); int _b(); int _c(); int _d();
+    int SetMasterVolumeLevel(float fLevelDB, System.Guid pguidEventContext);
+    int SetMasterVolumeLevelScalar(float fLevel, System.Guid pguidEventContext);
+}}
+[Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+public interface IMMDevice {{
+    int Activate(ref System.Guid id, int dwClsCtx, System.IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
+}}
+[Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+public interface IMMDeviceEnumerator {{
+    int _a();
+    int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice endpoint);
+}}
+[ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")] public class MMDeviceEnumeratorComObject {{ }}
+public static class PcDeckAudio {{
+    public static void SetVolume(float level) {{
+        IMMDeviceEnumerator enumerator = (IMMDeviceEnumerator)(new MMDeviceEnumeratorComObject());
+        IMMDevice dev;
+        Marshal.ThrowExceptionForHR(enumerator.GetDefaultAudioEndpoint(0, 1, out dev));
+        var iid = typeof(IAudioEndpointVolume).GUID;
+        object o;
+        Marshal.ThrowExceptionForHR(dev.Activate(ref iid, 1, System.IntPtr.Zero, out o));
+        IAudioEndpointVolume vol = (IAudioEndpointVolume)o;
+        Marshal.ThrowExceptionForHR(vol.SetMasterVolumeLevelScalar(level, System.Guid.Empty));
+    }}
+}}
+"@
+[PcDeckAudio]::SetVolume({level:.4})
+"#,
+    );
+    spawn("powershell", &["-NoProfile", "-NonInteractive", "-Command", &script])
 }
 
 #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]

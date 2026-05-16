@@ -7,6 +7,7 @@ import type { DeckButton as DeckButtonModel } from "@/services/pcdeck"
 import { useAppTheme } from "@/theme/context"
 import type { ThemedStyle } from "@/theme/types"
 
+import { DeckIcon } from "./DeckIcon"
 import { WidgetTile } from "./widgets/WidgetTile"
 
 interface DeckButtonProps {
@@ -71,7 +72,9 @@ export const DeckButton: FC<DeckButtonProps> = ({
         ]}
       >
         <View style={$labelRow}>
-          {!!button.icon && <Text style={themed($iconSm)}>{button.icon}</Text>}
+          {!!button.icon && (
+            <DeckIcon name={button.icon} size={18} color={theme.colors.palette.neutral100} />
+          )}
           <Text style={themed($label)} numberOfLines={1}>
             {button.label}
           </Text>
@@ -102,7 +105,11 @@ export const DeckButton: FC<DeckButtonProps> = ({
         ]}
       >
         <View style={$content}>
-          {!!icon && <Text style={themed($icon)}>{icon}</Text>}
+          {!!icon && (
+            <View style={themed($iconWrap)}>
+              <DeckIcon name={icon} size={28} color={theme.colors.palette.neutral100} />
+            </View>
+          )}
           <Text style={themed($label)} numberOfLines={2} ellipsizeMode="tail">
             {label}
           </Text>
@@ -131,7 +138,11 @@ export const DeckButton: FC<DeckButtonProps> = ({
       ]}
     >
       <View style={$content}>
-        {!!button.icon && <Text style={themed($icon)}>{button.icon}</Text>}
+        {!!button.icon && (
+          <View style={themed($iconWrap)}>
+            <DeckIcon name={button.icon} size={28} color={theme.colors.palette.neutral100} />
+          </View>
+        )}
         <Text style={themed($label)} numberOfLines={2} ellipsizeMode="tail">
           {button.label}
         </Text>
@@ -188,13 +199,8 @@ const $pressed: ThemedStyle<ViewStyle> = () => ({ opacity: 0.7 })
 const $content: ViewStyle = { alignItems: "center", justifyContent: "center" }
 const $labelRow: ViewStyle = { flexDirection: "row", alignItems: "center", gap: 6 }
 
-const $icon: ThemedStyle<TextStyle> = ({ spacing }) => ({
-  fontSize: 28,
+const $iconWrap: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   marginBottom: spacing.xxs,
-})
-
-const $iconSm: ThemedStyle<TextStyle> = () => ({
-  fontSize: 18,
 })
 
 const $label: ThemedStyle<TextStyle> = ({ colors }) => ({

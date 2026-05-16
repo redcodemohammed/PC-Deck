@@ -76,6 +76,9 @@ export const EditorScreen: FC = function EditorScreen() {
           button={button}
           gridRows={deck.rows}
           gridColumns={deck.columns}
+          otherButtons={deck.buttons.filter(
+            (b) => b.id !== button.id && (b.page ?? 0) === (button.page ?? 0),
+          )}
           onSave={handleSave}
           onCancel={() => router.back()}
           onDelete={params.buttonId ? handleDelete : undefined}

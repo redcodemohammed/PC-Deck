@@ -1,7 +1,7 @@
 import { FC, useMemo, useState } from "react"
 import { TextStyle, View, ViewStyle } from "react-native"
 import { useLocalSearchParams, useRouter } from "expo-router"
-import { Card, Chip, SegmentedButtons, Text as PaperText } from "react-native-paper"
+import { Card, SegmentedButtons, Text as PaperText } from "react-native-paper"
 
 import { Button } from "@/components/Button"
 import { Screen } from "@/components/Screen"
@@ -10,6 +10,8 @@ import {
   ActionConfigForm,
   ColorPicker,
   IconPicker,
+  TileSizePicker,
+  type TileSelection,
 } from "@/components/pcdeck"
 import { TextField } from "@/components/TextField"
 import type {
@@ -32,14 +34,6 @@ const KINDS: { value: ButtonKind; label: string; helper: string }[] = [
   { value: "toggle", label: "Toggle", helper: "Two states with separate actions" },
   { value: "slider", label: "Slider", helper: "Controls a continuous value" },
   { value: "widget", label: "Widget", helper: "Shows live desktop data" },
-]
-
-const SIZES = [
-  { label: "1 x 1", rowSpan: 1, colSpan: 1 },
-  { label: "2 x 1", rowSpan: 1, colSpan: 2 },
-  { label: "1 x 2", rowSpan: 2, colSpan: 1 },
-  { label: "2 x 2", rowSpan: 2, colSpan: 2 },
-  { label: "3 x 1", rowSpan: 1, colSpan: 3 },
 ]
 
 const WIDGET_TYPES: { value: WidgetType; label: string; helper: string }[] = [
@@ -68,6 +62,7 @@ export const AddTileScreen: FC = function AddTileScreen() {
   const params = useLocalSearchParams<{ deckId?: string; page?: string; row?: string; column?: string }>()
   const decks = useActiveDecks()
   const autoPlaceButton = useDeckStore((s) => s.autoPlaceButton)
+  const insertButtons = useDeckStore((s) => s.insertButtons)
 
   const deckId = String(params.deckId ?? "")
   const deck = useMemo(() => decks.find((d) => d.id === deckId), [decks, deckId])
@@ -75,8 +70,7 @@ export const AddTileScreen: FC = function AddTileScreen() {
 
   const [step, setStep] = useState<Step>("type")
   const [kind, setKind] = useState<ButtonKind>("button")
-  const [rowSpan, setRowSpan] = useState(1)
-  const [colSpan, setColSpan] = useState(1)
+  const [selection, setSelection] = useState<TileSelection | null>(null)
   const [label, setLabel] = useState("Button")
   const [icon, setIcon] = useState("")
   const [color, setColor] = useState<string | null>(null)
@@ -100,24 +94,36 @@ export const AddTileScreen: FC = function AddTileScreen() {
     )
   }
 
-  const selectedSize = SIZES.find((s) => s.rowSpan === rowSpan && s.colSpan === colSpan) ?? SIZES[0]
-
   const save = async () => {
     setSaving(true)
-    const button: Omit<DeckButton, "row" | "column"> = {
-      ...newButton(0, 0),
+    const sharedFields = {
       label: label.trim() || kindLabel(kind),
       icon,
       color,
-      rowSpan,
-      colSpan,
       kind,
       action: kind === "button" ? action : null,
       toggle: kind === "toggle" ? toggle : null,
       slider: kind === "slider" ? slider : null,
       widget: kind === "widget" ? widget : null,
     }
-    await autoPlaceButton(deck.id, button, preferredPage)
+    if (selection) {
+      // User explicitly picked position and size — honour it.
+      const placed: DeckButton = {
+        ...newButton(selection.row, selection.column),
+        page: preferredPage,
+        rowSpan: selection.rowSpan,
+        colSpan: selection.colSpan,
+        ...sharedFields,
+      }
+      await insertButtons(deck.id, [placed])
+    } else {
+      // Fall back to auto-placement at 1x1.
+      await autoPlaceButton(
+        deck.id,
+        { ...newButton(0, 0), rowSpan: 1, colSpan: 1, ...sharedFields },
+        preferredPage,
+      )
+    }
     router.back()
   }
 
@@ -170,26 +176,22 @@ export const AddTileScreen: FC = function AddTileScreen() {
 
       {step === "size" && (
         <View style={themed($section)}>
-          <Text preset="subheading" text="Tile size" />
-          <View style={themed($chipRow)}>
-            {SIZES.filter((s) => s.rowSpan <= deck.rows && s.colSpan <= deck.columns).map((size) => {
-              const active = size === selectedSize
-              return (
-                <Chip
-                  key={size.label}
-                  selected={active}
-                  mode={active ? "flat" : "outlined"}
-                  onPress={() => {
-                    setRowSpan(size.rowSpan)
-                    setColSpan(size.colSpan)
-                  }}
-                >
-                  {size.label}
-                </Chip>
-              )
-            })}
-          </View>
-          <SizePreview rows={rowSpan} columns={colSpan} />
+          <Text preset="subheading" text="Tile position & size" />
+          <Text
+            style={themed($helper)}
+            text={
+              `Tap a free cell to place the tile, then tap another cell to set its size. ` +
+              `Tap the placed cell again to clear. Skip to auto-place a 1×1 tile. ` +
+              `(Page ${preferredPage + 1})`
+            }
+          />
+          <TileSizePicker
+            rows={deck.rows}
+            columns={deck.columns}
+            otherButtons={deck.buttons.filter((b) => (b.page ?? 0) === preferredPage)}
+            value={selection}
+            onChange={setSelection}
+          />
         </View>
       )}
 
@@ -318,21 +320,6 @@ export const AddTileScreen: FC = function AddTileScreen() {
         )}
       </View>
     </Screen>
-  )
-}
-
-const SizePreview: FC<{ rows: number; columns: number }> = ({ rows, columns }) => {
-  const { themed } = useAppTheme()
-  return (
-    <View style={themed($preview)}>
-      {Array.from({ length: rows }).map((_, row) => (
-        <View key={row} style={themed($previewRow)}>
-          {Array.from({ length: columns }).map((__, column) => (
-            <View key={column} style={themed($previewCell)} />
-          ))}
-        </View>
-      ))}
-    </View>
   )
 }
 

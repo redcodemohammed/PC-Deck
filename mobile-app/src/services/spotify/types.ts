@@ -31,13 +31,15 @@ export interface SpotifyDevice {
   volume_percent?: number
 }
 
+export type SpotifyRepeatMode = "off" | "track" | "context"
+
 export interface SpotifyPlaybackState {
   is_playing: boolean
   progress_ms: number | null
   item: SpotifyTrack | null
   device: SpotifyDevice | null
   shuffle_state?: boolean
-  repeat_state?: "off" | "track" | "context"
+  repeat_state?: SpotifyRepeatMode
 }
 
 export interface SpotifyTokens {

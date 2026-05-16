@@ -1,6 +1,7 @@
 import { FC, useCallback, useEffect, useState } from "react"
 import { ActivityIndicator, Pressable, TextStyle, View, ViewStyle } from "react-native"
 import { useRouter } from "expo-router"
+import { Card } from "react-native-paper"
 
 import { Button } from "@/components/Button"
 import { ConnectionStatus } from "@/components/pcdeck"
@@ -77,66 +78,80 @@ export const ConnectScreen: FC = function ConnectScreen() {
       </View>
 
       {devices.length > 0 && (
-        <View style={themed($section)}>
-          <View style={themed($sectionHeader)}>
-            <Text preset="subheading" text="Saved devices" />
-            <Pressable onPress={() => router.push("/devices")}>
-              <Text style={themed($link)} text="Manage" />
-            </Pressable>
-          </View>
-          {devices.map((d) => (
+        <Card mode="elevated" style={themed($card)}>
+          <Card.Title
+            title="Saved devices"
+            titleStyle={themed($cardTitle)}
+            right={() => (
+              <Pressable onPress={() => router.push("/devices")} style={themed($manageBtn)}>
+                <Text style={themed($link)} text="Manage" />
+              </Pressable>
+            )}
+          />
+          <Card.Content style={themed($cardContent)}>
+            {devices.map((d) => (
+              <Pressable
+                key={d.id}
+                onPress={() => {
+                  setActiveDevice(d.id)
+                  router.replace("/deck")
+                }}
+                style={({ pressed }) => [themed($deviceRow), pressed && { opacity: 0.85 }]}
+              >
+                <View style={themed($deviceInfo)}>
+                  <Text style={themed($deviceName)} text={d.desktopName || d.host} />
+                  <Text style={themed($deviceMeta)} text={`${d.host} · ${d.deviceName}`} />
+                </View>
+                <Text style={themed($link)} text="Open ›" />
+              </Pressable>
+            ))}
+          </Card.Content>
+        </Card>
+      )}
+
+      <Card mode="elevated" style={themed($card)}>
+        <Card.Title
+          title="Find on network"
+          titleStyle={themed($cardTitle)}
+          right={() => (
+            <Button
+              preset="default"
+              text={scanning ? `${Math.round(scanProgress * 100)}%` : "Scan"}
+              onPress={onScan}
+              disabled={scanning}
+              style={themed($manageBtn)}
+            />
+          )}
+        />
+        <Card.Content style={themed($cardContent)}>
+          {!!subnet && (
+            <Text
+              style={themed($helper)}
+              text={`Probing ${subnet}.1 – ${subnet}.254 on port 41730`}
+            />
+          )}
+          {scanning && scanResults.length === 0 && (
+            <ActivityIndicator color={theme.colors.tint} />
+          )}
+          {scanResults.map((r) => (
             <Pressable
-              key={d.id}
-              onPress={() => {
-                setActiveDevice(d.id)
-                router.replace("/deck")
-              }}
+              key={r.host}
+              onPress={() => setHost(r.host)}
               style={({ pressed }) => [themed($deviceRow), pressed && { opacity: 0.85 }]}
             >
               <View style={themed($deviceInfo)}>
-                <Text style={themed($deviceName)} text={d.desktopName || d.host} />
-                <Text style={themed($deviceMeta)} text={`${d.host} · ${d.deviceName}`} />
+                <Text style={themed($deviceName)} text={r.health.name} />
+                <Text style={themed($deviceMeta)} text={`${r.host} · ${r.health.platform}`} />
               </View>
-              <Text style={themed($link)} text="Open" />
+              <Text style={themed($link)} text="Use ›" />
             </Pressable>
           ))}
-        </View>
-      )}
+        </Card.Content>
+      </Card>
 
-      <View style={themed($section)}>
-        <View style={themed($sectionHeader)}>
-          <Text preset="subheading" text="Find on network" />
-          <Button
-            preset="default"
-            text={scanning ? `Scanning ${Math.round(scanProgress * 100)}%` : "Scan"}
-            onPress={onScan}
-            disabled={scanning}
-          />
-        </View>
-        {!!subnet && (
-          <Text
-            style={themed($helper)}
-            text={`Probing ${subnet}.1 – ${subnet}.254 on port 41730`}
-          />
-        )}
-        {scanning && scanResults.length === 0 && <ActivityIndicator color={theme.colors.tint} />}
-        {scanResults.map((r) => (
-          <Pressable
-            key={r.host}
-            onPress={() => setHost(r.host)}
-            style={({ pressed }) => [themed($deviceRow), pressed && { opacity: 0.85 }]}
-          >
-            <View style={themed($deviceInfo)}>
-              <Text style={themed($deviceName)} text={r.health.name} />
-              <Text style={themed($deviceMeta)} text={`${r.host} · ${r.health.platform}`} />
-            </View>
-            <Text style={themed($link)} text="Use" />
-          </Pressable>
-        ))}
-      </View>
-
-      <View style={themed($section)}>
-        <Text preset="subheading" text="Pair a new desktop" />
+      <Card mode="elevated" style={themed($card)}>
+        <Card.Title title="Pair a new desktop" titleStyle={themed($cardTitle)} />
+        <Card.Content style={themed($cardContent)}>
         <TextField
           value={host}
           onChangeText={setHost}
@@ -174,7 +189,8 @@ export const ConnectScreen: FC = function ConnectScreen() {
         />
 
         <ConnectionStatus pairing={status} socket="idle" host={host} />
-      </View>
+        </Card.Content>
+      </Card>
     </Screen>
   )
 }
@@ -186,12 +202,14 @@ const $content: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 
 const $header: ThemedStyle<ViewStyle> = ({ spacing }) => ({ gap: spacing.xs })
 
-const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({ gap: spacing.sm })
-
-const $sectionHeader: ThemedStyle<ViewStyle> = () => ({
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
+const $card: ThemedStyle<ViewStyle> = ({ spacing }) => ({ borderRadius: spacing.sm })
+const $cardTitle: ThemedStyle<TextStyle> = () => ({ fontWeight: "700" })
+const $cardContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  gap: spacing.sm,
+  paddingBottom: spacing.sm,
+})
+const $manageBtn: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  marginRight: spacing.sm,
 })
 
 const $deviceRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({

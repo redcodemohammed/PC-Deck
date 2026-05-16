@@ -1,6 +1,7 @@
 import { FC, useState } from "react"
 import { Pressable, TextStyle, View, ViewStyle } from "react-native"
 import { useRouter } from "expo-router"
+import { Card } from "react-native-paper"
 
 import { Button } from "@/components/Button"
 import { Screen } from "@/components/Screen"
@@ -73,7 +74,8 @@ const DeviceCard: FC<DeviceCardProps> = ({ device, active, onOpen, onRename, onR
 
   const activeOverlay: ViewStyle = { borderColor: theme.colors.tint, borderWidth: 2 }
   return (
-    <View style={[themed($card), active && activeOverlay]}>
+    <Card mode="elevated" style={[themed($card), active && activeOverlay]}>
+      <Card.Content style={themed($cardInner)}>
       <View style={themed($cardHeader)}>
         <View style={themed($cardInfo)}>
           <Text style={themed($name)} text={device.desktopName || device.host} />
@@ -129,7 +131,8 @@ const DeviceCard: FC<DeviceCardProps> = ({ device, active, onOpen, onRename, onR
           />
         </View>
       )}
-    </View>
+      </Card.Content>
+    </Card>
   )
 }
 
@@ -151,12 +154,14 @@ const $empty: ThemedStyle<TextStyle> = ({ colors, spacing }) => ({
   textAlign: "center",
 })
 
-const $card: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  borderWidth: 1,
-  borderColor: colors.border,
+const $card: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   borderRadius: spacing.sm,
-  padding: spacing.md,
+})
+
+const $cardInner: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   gap: spacing.sm,
+  paddingTop: spacing.sm,
+  paddingBottom: spacing.sm,
 })
 
 const $cardHeader: ThemedStyle<ViewStyle> = () => ({

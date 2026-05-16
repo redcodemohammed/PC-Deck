@@ -20,6 +20,7 @@ import type { ThemedStyle } from "@/theme/types"
 import { ActionConfigForm } from "./ActionConfigForm"
 import { ColorPicker } from "./ColorPicker"
 import { IconPicker } from "./IconPicker"
+import { TileSizePicker } from "./TileSizePicker"
 
 interface ButtonEditorProps {
   button: DeckButton
@@ -27,6 +28,9 @@ interface ButtonEditorProps {
   gridRows: number
   /** Total grid columns — used to cap colSpan choices. */
   gridColumns: number
+  /** Buttons on the same page (excluding the one being edited). Their cells
+   *  show as red in the size picker so the user can't overlap them. */
+  otherButtons?: DeckButton[]
   onSave: (button: DeckButton) => void
   onDelete?: (button: DeckButton) => void
   onCancel?: () => void
@@ -46,14 +50,6 @@ const WIDGET_TYPES: { value: WidgetType; label: string; helper: string }[] = [
   { value: "spotify", label: "Spotify", helper: "OAuth pending" },
 ]
 
-const SIZE_PRESETS = [
-  { label: "1 x 1", rowSpan: 1, colSpan: 1 },
-  { label: "2 x 1", rowSpan: 1, colSpan: 2 },
-  { label: "1 x 2", rowSpan: 2, colSpan: 1 },
-  { label: "2 x 2", rowSpan: 2, colSpan: 2 },
-  { label: "3 x 1", rowSpan: 1, colSpan: 3 },
-]
-
 function defaultWidgetConfig(type: WidgetType): WidgetConfig {
   switch (type) {
     case "clock":
@@ -71,6 +67,7 @@ export const ButtonEditor: FC<ButtonEditorProps> = ({
   button,
   gridRows,
   gridColumns,
+  otherButtons,
   onSave,
   onDelete,
   onCancel,
@@ -100,9 +97,6 @@ export const ButtonEditor: FC<ButtonEditorProps> = ({
     button.widget ?? defaultWidgetConfig("clock"),
   )
 
-  const maxRowSpan = Math.max(1, gridRows - button.row)
-  const maxColSpan = Math.max(1, gridColumns - button.column)
-
   const handleSave = () => {
     onSave({
       ...button,
@@ -126,25 +120,19 @@ export const ButtonEditor: FC<ButtonEditorProps> = ({
       <Text preset="subheading" text={`Row ${button.row + 1} · Column ${button.column + 1}`} />
 
       <Text preset="formLabel" text="Size" />
-      <View style={themed($kindRow)}>
-        {SIZE_PRESETS.filter((s) => s.rowSpan <= maxRowSpan && s.colSpan <= maxColSpan).map((size) => {
-          const active = rowSpan === size.rowSpan && colSpan === size.colSpan
-          return (
-            <Chip
-              key={size.label}
-              mode={active ? "flat" : "outlined"}
-              selected={active}
-              onPress={() => {
-                setRowSpan(size.rowSpan)
-                setColSpan(size.colSpan)
-              }}
-            >
-              {size.label}
-            </Chip>
-          )
-        })}
-      </View>
-      <SizePreview rows={rowSpan} columns={colSpan} />
+      <TileSizePicker
+        rows={gridRows}
+        columns={gridColumns}
+        otherButtons={otherButtons}
+        anchorRow={button.row}
+        anchorColumn={button.column}
+        value={{ row: button.row, column: button.column, rowSpan, colSpan }}
+        onChange={(next) => {
+          if (!next) return // anchored mode never emits null
+          setRowSpan(next.rowSpan)
+          setColSpan(next.colSpan)
+        }}
+      />
 
       <TextField value={label} onChangeText={setLabel} label="Label" />
 
@@ -441,21 +429,6 @@ export const ButtonEditor: FC<ButtonEditorProps> = ({
   )
 }
 
-const SizePreview: FC<{ rows: number; columns: number }> = ({ rows, columns }) => {
-  const { themed } = useAppTheme()
-  return (
-    <View style={themed($preview)}>
-      {Array.from({ length: rows }).map((_, row) => (
-        <View key={row} style={themed($previewRow)}>
-          {Array.from({ length: columns }).map((__, column) => (
-            <View key={column} style={themed($previewCell)} />
-          ))}
-        </View>
-      ))}
-    </View>
-  )
-}
-
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({ gap: spacing.sm })
 const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({ gap: spacing.xs })
 const $kindRow: ThemedStyle<ViewStyle> = ({ spacing }) => ({
@@ -489,24 +462,6 @@ const $actions: ThemedStyle<ViewStyle> = ({ spacing }) => ({
 })
 const $actionBtn: ThemedStyle<ViewStyle> = () => ({ flex: 1 })
 
-const $preview: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
-  alignSelf: "flex-start",
-  gap: 6,
-  padding: spacing.sm,
-  borderWidth: 1,
-  borderColor: colors.border,
-  borderRadius: spacing.xs,
-})
-const $previewRow: ThemedStyle<ViewStyle> = () => ({
-  flexDirection: "row",
-  gap: 6,
-})
-const $previewCell: ThemedStyle<ViewStyle> = ({ colors }) => ({
-  width: 28,
-  height: 28,
-  borderRadius: 6,
-  backgroundColor: colors.tint,
-})
 const $toggleRow: ThemedStyle<ViewStyle> = ({ colors, spacing }) => ({
   flexDirection: "row",
   alignItems: "center",

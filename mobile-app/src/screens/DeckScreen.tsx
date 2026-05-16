@@ -1,10 +1,11 @@
 import { FC, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { PanResponder, ScrollView, TextStyle, View, ViewStyle } from "react-native"
+import Animated, { FadeIn, FadeInDown, FadeOutDown } from "react-native-reanimated"
 import { useFocusEffect, useRouter } from "expo-router"
-import { Chip, IconButton } from "react-native-paper"
+import { Appbar, Chip, IconButton } from "react-native-paper"
 
 import { Button } from "@/components/Button"
-import { ConnectionStatus, DeckGrid } from "@/components/pcdeck"
+import { ConnectionStatus, DeckGrid, PageDots } from "@/components/pcdeck"
 import { Screen } from "@/components/Screen"
 import { Text } from "@/components/Text"
 import { WsClient, type WsStatus, type Deck, type DeckButton } from "@/services/pcdeck"
@@ -272,27 +273,43 @@ export const DeckScreen: FC = function DeckScreen() {
 
   return (
     <Screen preset="fixed" contentContainerStyle={$styles.flex1} safeAreaEdges={["top", "bottom"]}>
-      <View style={themed($topBar)}>
-        <ConnectionStatus
-          pairing={pairingStatus}
-          socket={wsStatus}
-          desktopName={activeDevice?.desktopName}
-          host={activeDevice?.host}
-        />
-        <View style={themed($topActions)}>
-          {editMode && <Button preset="filled" text="Add tile" onPress={onAddTile} />}
-          <Button
-            preset={editMode ? "filled" : "default"}
-            text={editMode ? "Done" : "Edit"}
-            onPress={() => {
-              setEditMode((value) => !value)
-              setSelectedButtonId(null)
-            }}
+      <Appbar.Header mode="small" elevated style={themed($appbar)}>
+        <View style={themed($appbarStatus)}>
+          <ConnectionStatus
+            pairing={pairingStatus}
+            socket={wsStatus}
+            desktopName={activeDevice?.desktopName}
+            host={activeDevice?.host}
           />
-          <Button preset="default" text="Devices" onPress={() => router.push("/devices")} />
-          <Button preset="default" text="Settings" onPress={() => router.push("/settings")} />
         </View>
-      </View>
+        {editMode && (
+          <Animated.View entering={FadeInDown.duration(180)} exiting={FadeOutDown.duration(180)}>
+            <Appbar.Action
+              icon="plus"
+              onPress={onAddTile}
+              accessibilityLabel="Add tile"
+            />
+          </Animated.View>
+        )}
+        <Appbar.Action
+          icon={editMode ? "check" : "pencil"}
+          onPress={() => {
+            setEditMode((value) => !value)
+            setSelectedButtonId(null)
+          }}
+          accessibilityLabel={editMode ? "Finish editing" : "Edit deck"}
+        />
+        <Appbar.Action
+          icon="devices"
+          onPress={() => router.push("/devices")}
+          accessibilityLabel="Devices"
+        />
+        <Appbar.Action
+          icon="cog"
+          onPress={() => router.push("/settings")}
+          accessibilityLabel="Settings"
+        />
+      </Appbar.Header>
 
       <View style={themed($deckChooser)}>
         <ScrollView
@@ -344,77 +361,32 @@ export const DeckScreen: FC = function DeckScreen() {
         </ScrollView>
       </View>
 
-      {(editMode || pageCount > 1) && (
-        <View style={themed($pageChooser)}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={themed($chipScroll)}
-          >
-            {Array.from({ length: pageCount }).map((_, page) => (
-              <Chip
-                key={page}
-                compact
-                mode={page === currentPage ? "flat" : "outlined"}
-                selected={page === currentPage}
-                onPress={() => {
-                  setCurrentPage(page)
-                  setSelectedButtonId(null)
-                }}
-              >
-                Page {page + 1}
-              </Chip>
-            ))}
-            {editMode && (
-              <Chip
-                compact
-                icon="plus"
-                mode="outlined"
-                onPress={() => {
-                  setCurrentPage(pageCount)
-                  setSelectedButtonId(null)
-                }}
-              >
-                New page
-              </Chip>
-            )}
-            {editMode && currentPage > maxButtonPage && pageCount > 1 && (
-              <Chip
-                compact
-                icon="close"
-                mode="outlined"
-                onPress={() => {
-                  setCurrentPage(Math.max(0, currentPage - 1))
-                  setSelectedButtonId(null)
-                }}
-              >
-                Remove empty page
-              </Chip>
-            )}
-          </ScrollView>
-        </View>
-      )}
-
       <View style={themed($body)}>
         <View style={themed($gridContainer)} {...pageSwipeResponder.panHandlers}>
           {currentDeck ? (
-            <DeckGrid
-              deck={currentDeck}
-              page={currentPage}
-              editMode={editMode}
-              selectedButtonId={selectedButtonId}
-              toggleState={toggleState}
-              sliderState={sliderState}
-              onPressButton={onPressButton}
-              onLongPressButton={onLongPressButton}
-              onPressEmpty={editMode ? onPressEmpty : undefined}
-              onSelectButton={(button) => setSelectedButtonId(button.id)}
-              onMoveButton={onMoveDeckButton}
-              onRemoveButton={onRemoveDeckButton}
-              onEditButton={onEditDeckButton}
-              onToggle={onToggle}
-              onSlide={onSlide}
-            />
+            <Animated.View
+              key={`${currentDeck.id}:${currentPage}`}
+              entering={FadeIn.duration(180)}
+              style={$styles.flex1}
+            >
+              <DeckGrid
+                deck={currentDeck}
+                page={currentPage}
+                editMode={editMode}
+                selectedButtonId={selectedButtonId}
+                toggleState={toggleState}
+                sliderState={sliderState}
+                onPressButton={onPressButton}
+                onLongPressButton={onLongPressButton}
+                onPressEmpty={editMode ? onPressEmpty : undefined}
+                onSelectButton={(button) => setSelectedButtonId(button.id)}
+                onMoveButton={onMoveDeckButton}
+                onRemoveButton={onRemoveDeckButton}
+                onEditButton={onEditDeckButton}
+                onToggle={onToggle}
+                onSlide={onSlide}
+              />
+            </Animated.View>
           ) : (
             <View style={themed($emptyState)}>
               <Text preset="subheading" text={status === "loading" ? "Loading…" : "No decks yet"} />
@@ -426,6 +398,27 @@ export const DeckScreen: FC = function DeckScreen() {
         </View>
       </View>
 
+      {(editMode || pageCount > 1) && currentDeck && (
+        <PageDots
+          count={pageCount}
+          current={currentPage}
+          editable={editMode}
+          canRemoveCurrent={currentPage > maxButtonPage && pageCount > 1}
+          onSelect={(page) => {
+            setCurrentPage(page)
+            setSelectedButtonId(null)
+          }}
+          onAdd={() => {
+            setCurrentPage(pageCount)
+            setSelectedButtonId(null)
+          }}
+          onRemove={() => {
+            setCurrentPage(Math.max(0, currentPage - 1))
+            setSelectedButtonId(null)
+          }}
+        />
+      )}
+
       {!!(error || actionError) && (
         <View style={themed($errorBar)}>
           <Text style={themed($errorText)} text={actionError ?? error ?? ""} />
@@ -435,17 +428,13 @@ export const DeckScreen: FC = function DeckScreen() {
   )
 }
 
-const $topBar: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between",
-  paddingHorizontal: spacing.md,
-  paddingVertical: spacing.sm,
+const $appbar: ThemedStyle<ViewStyle> = ({ colors }) => ({
+  backgroundColor: colors.background,
 })
 
-const $topActions: ThemedStyle<ViewStyle> = ({ spacing }) => ({
-  flexDirection: "row",
-  gap: spacing.xs,
+const $appbarStatus: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  flex: 1,
+  paddingHorizontal: spacing.md,
 })
 
 const $deckChooser: ThemedStyle<ViewStyle> = ({ spacing }) => ({

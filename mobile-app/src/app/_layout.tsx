@@ -6,6 +6,7 @@ import { initialWindowMetrics, SafeAreaProvider } from "react-native-safe-area-c
 
 import { initI18n } from "@/i18n"
 import { ThemeProvider } from "@/theme/context"
+import { PaperThemeBridge } from "@/theme/paper"
 import { customFontsToLoad } from "@/theme/typography"
 import { loadDateFnsLocale } from "@/utils/formatDate"
 
@@ -47,9 +48,11 @@ export default function Root() {
   return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <ThemeProvider>
-        <KeyboardProvider>
-          <Slot />
-        </KeyboardProvider>
+        <PaperThemeBridge>
+          <KeyboardProvider>
+            <Slot />
+          </KeyboardProvider>
+        </PaperThemeBridge>
       </ThemeProvider>
     </SafeAreaProvider>
   )

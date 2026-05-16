@@ -43,19 +43,19 @@ export const PRESETS: DeckPreset[] = [
       const prev = {
         ...newButton(row, column),
         label: "Prev",
-        icon: "⏮",
+        icon: "mdi:skip-previous",
         action: hotkeyAction("Previous", "MediaPrev"),
       }
       const play = {
         ...newButton(row, column + 1),
         kind: "toggle" as const,
         label: "Play",
-        icon: "▶️",
+        icon: "mdi:play",
         toggle: {
           onLabel: "Pause",
           offLabel: "Play",
-          onIcon: "⏸",
-          offIcon: "▶️",
+          onIcon: "mdi:pause",
+          offIcon: "mdi:play",
           onColor: null,
           offColor: null,
           onAction: hotkeyAction("Play/Pause", "MediaPlayPause"),
@@ -65,19 +65,19 @@ export const PRESETS: DeckPreset[] = [
       const next = {
         ...newButton(row, column + 2),
         label: "Next",
-        icon: "⏭",
+        icon: "mdi:skip-next",
         action: hotkeyAction("Next", "MediaNext"),
       }
       const mute = {
         ...newButton(row, column + 3),
         kind: "toggle" as const,
         label: "Mute",
-        icon: "🔊",
+        icon: "mdi:volume-high",
         toggle: {
           onLabel: "Muted",
           offLabel: "Sound",
-          onIcon: "🔇",
-          offIcon: "🔊",
+          onIcon: "mdi:volume-off",
+          offIcon: "mdi:volume-high",
           onColor: null,
           offColor: null,
           onAction: hotkeyAction("Mute", "VolumeMute"),
@@ -88,7 +88,7 @@ export const PRESETS: DeckPreset[] = [
         ...newButton(row, column + 4),
         kind: "slider" as const,
         label: "Volume",
-        icon: "🔉",
+        icon: "mdi:volume-medium",
         slider: { min: 0, max: 100, step: 5, initial: 50, bind: "volume" as const },
       }
       return [prev, play, next, mute, volume]
@@ -107,7 +107,7 @@ export const PRESETS: DeckPreset[] = [
         colSpan: 3,
         kind: "widget" as const,
         label: "Now playing",
-        icon: "🎵",
+        icon: "mdi:music",
         widget: { type: "now_playing", config: {} },
       },
     ],
@@ -125,7 +125,7 @@ export const PRESETS: DeckPreset[] = [
         colSpan: 2,
         kind: "widget" as const,
         label: "Clock",
-        icon: "🕒",
+        icon: "mdi:clock-outline",
         widget: { type: "clock", config: { format: "24h", showSeconds: false, showDate: true } },
       },
     ],

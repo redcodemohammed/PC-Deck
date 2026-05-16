@@ -17,7 +17,7 @@ use tracing::info;
 use crate::{
     config::DaemonConfig,
     models::WsEvent,
-    routes::{actions::{execute_action, set_slider}, apps::list_apps, decks::{create_deck, delete_deck, get_decks, update_deck}, health::health, pair::pair, status::status, widgets::now_playing, ws::ws_handler},
+    routes::{actions::{execute_action, set_slider}, apps::list_apps, decks::{create_deck, delete_deck, get_decks, update_deck}, health::health, pair::pair, status::status, widgets::{now_playing, now_playing_control}, ws::ws_handler},
     storage::file_store::FileStore,
 };
 
@@ -49,6 +49,7 @@ async fn main() {
         .route("/actions/slider", post(set_slider))
         .route("/apps", get(list_apps))
         .route("/widgets/now_playing", get(now_playing))
+        .route("/widgets/now_playing/control", post(now_playing_control))
         .route("/status", get(status))
         .route("/ws", get(ws_handler))
         .layer(CorsLayer::permissive())

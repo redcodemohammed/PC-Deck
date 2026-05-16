@@ -135,13 +135,13 @@ export const DeckGrid: FC<DeckGridProps> = ({
               )
             }
             if (occupied.has(key)) return null
-            if (!editMode) return null
             return (
               <View key={key} style={positionStyle(r, c, 1, 1)}>
                 <EmptySlot
                   width={cellW}
                   height={cellH}
-                  onPress={() => onPressEmpty?.(r, c)}
+                  editable={editMode}
+                  onPress={editMode ? () => onPressEmpty?.(r, c) : undefined}
                 />
               </View>
             )

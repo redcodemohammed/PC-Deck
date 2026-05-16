@@ -1,6 +1,7 @@
 import { FC, useEffect, useState } from "react"
 import { TextStyle, View, ViewStyle } from "react-native"
 import { useRouter } from "expo-router"
+import { Card } from "react-native-paper"
 
 import { Button } from "@/components/Button"
 import { ConnectionStatus } from "@/components/pcdeck"
@@ -55,8 +56,7 @@ export const SettingsScreen: FC = function SettingsScreen() {
     >
       <Text preset="heading" text="Settings" />
 
-      <View style={themed($section)}>
-        <Text preset="subheading" text="Connection" />
+      <Section title="Connection">
         <ConnectionStatus
           pairing={pairingStatus}
           socket="idle"
@@ -72,23 +72,39 @@ export const SettingsScreen: FC = function SettingsScreen() {
           <Row label="Shell commands" value={status.shellCommandEnabled ? "Enabled" : "Disabled"} />
         )}
         {!!error && <Text style={themed($error)} text={error} />}
-      </View>
 
-      <View style={themed($section)}>
-        <Button preset="default" text="Switch device" onPress={() => router.push("/devices")} />
-        <Button
-          preset="reversed"
-          text="Disconnect this device"
-          onPress={() => {
-            if (!activeDeviceId) return
-            removeDevice(activeDeviceId)
-            router.replace("/connect")
-          }}
-        />
-      </View>
+        <View style={themed($actions)}>
+          <Button
+            preset="default"
+            text="Switch device"
+            onPress={() => router.push("/devices")}
+            style={themed($actionBtn)}
+          />
+          <Button
+            preset="reversed"
+            text="Disconnect"
+            onPress={() => {
+              if (!activeDeviceId) return
+              removeDevice(activeDeviceId)
+              router.replace("/connect")
+            }}
+            style={themed($actionBtn)}
+          />
+        </View>
+      </Section>
 
       <SpotifySection />
     </Screen>
+  )
+}
+
+const Section: FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => {
+  const { themed } = useAppTheme()
+  return (
+    <Card mode="elevated" style={themed($card)}>
+      <Card.Title title={title} titleStyle={themed($cardTitle)} />
+      <Card.Content style={themed($cardContent)}>{children}</Card.Content>
+    </Card>
   )
 }
 
@@ -110,11 +126,10 @@ const SpotifySection: FC = () => {
   }, [clientId])
 
   return (
-    <View style={themed($section)}>
-      <Text preset="subheading" text="Spotify" />
+    <Section title="Spotify">
       <Text
         style={themed($helper)}
-        text={`Register a Spotify app at developer.spotify.com/dashboard, then paste its Client ID below. Add this Redirect URI in the Spotify app settings:\n${redirectUri}`}
+        text={`Create an app at developer.spotify.com/dashboard, paste its Client ID below, and add this Redirect URI in the app settings:\n${redirectUri}`}
       />
 
       <TextField
@@ -129,9 +144,14 @@ const SpotifySection: FC = () => {
       <Row label="Status" value={spotifyStatusLabel(status, !!tokens)} />
       {!!error && <Text style={themed($error)} text={error} />}
 
-      <View style={themed($spotifyActions)}>
+      <View style={themed($actions)}>
         {tokens ? (
-          <Button preset="reversed" text="Disconnect Spotify" onPress={disconnect} />
+          <Button
+            preset="reversed"
+            text="Disconnect Spotify"
+            onPress={disconnect}
+            style={themed($actionBtn)}
+          />
         ) : (
           <Button
             preset="filled"
@@ -141,10 +161,11 @@ const SpotifySection: FC = () => {
               setClientId(draftClientId)
               connect()
             }}
+            style={themed($actionBtn)}
           />
         )}
       </View>
-    </View>
+    </Section>
   )
 }
 
@@ -160,33 +181,42 @@ const Row: FC<{ label: string; value: string }> = ({ label, value }) => {
   return (
     <View style={themed($row)}>
       <Text style={themed($rowLabel)} text={label} />
-      <Text style={themed($rowValue)} text={value} />
+      <Text style={themed($rowValue)} text={value} numberOfLines={1} />
     </View>
   )
 }
 
 const $container: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   padding: spacing.lg,
-  gap: spacing.lg,
+  gap: spacing.md,
 })
 
-const $section: ThemedStyle<ViewStyle> = ({ spacing }) => ({ gap: spacing.sm })
+const $card: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  borderRadius: spacing.sm,
+})
 
-const $row: ThemedStyle<ViewStyle> = () => ({
+const $cardTitle: ThemedStyle<TextStyle> = () => ({ fontWeight: "700" })
+
+const $cardContent: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+  gap: spacing.sm,
+  paddingBottom: spacing.sm,
+})
+
+const $row: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   justifyContent: "space-between",
   alignItems: "center",
+  gap: spacing.sm,
 })
 
 const $rowLabel: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.textDim })
-
-const $rowValue: ThemedStyle<TextStyle> = () => ({ fontWeight: "600" })
-
+const $rowValue: ThemedStyle<TextStyle> = () => ({ fontWeight: "600", flexShrink: 1, textAlign: "right" })
 const $error: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.error })
-
 const $helper: ThemedStyle<TextStyle> = ({ colors }) => ({ color: colors.textDim, fontSize: 12 })
 
-const $spotifyActions: ThemedStyle<ViewStyle> = ({ spacing }) => ({
+const $actions: ThemedStyle<ViewStyle> = ({ spacing }) => ({
   flexDirection: "row",
   gap: spacing.xs,
+  marginTop: spacing.xs,
 })
+const $actionBtn: ThemedStyle<ViewStyle> = () => ({ flex: 1 })
